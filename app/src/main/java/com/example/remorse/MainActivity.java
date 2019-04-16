@@ -19,6 +19,7 @@ import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.media.MediaPlayer;
 
 import com.example.remorse.Main2Activity;
 import com.example.remorse.Main3Activity;
@@ -39,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
             "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.",
             "-----", "--..--", ".-.-.-", "..--.." };
 
-    int flashMultiplier = 1;
+    int flashMultiplier = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +52,27 @@ public class MainActivity extends AppCompatActivity {
         Button switchToLearner = (Button) findViewById(R.id.switchToLearner);
         final TextView morseText = (TextView) findViewById(R.id.textView2);
         final EditText textBox = (EditText) findViewById(R.id.editText);
+        SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
+        final MediaPlayer mp = MediaPlayer.create(this, R.res.beep);
+
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                flashMultiplier = (seekBar.getProgress() + 1);
+                mp.start();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         sendMorse.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -61,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
 
                 for(int i = 0; i < content.length(); i++){
                     char letter = content.charAt(i);
+                    //Travis right here
                     for(int j = 0; j < 39; j++){
                         if(letter == english[j]){
                             callFlashLight(j);
@@ -72,7 +95,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }
-
             }
         });
 
@@ -116,6 +138,10 @@ public class MainActivity extends AppCompatActivity {
             flashLightOff();
             Thread.sleep(150 * flashMultiplier);
         } catch (InterruptedException e) {}
+    }
+
+    private void soundTimer(int time){
+
     }
 
     private void waitTimer(int time){
