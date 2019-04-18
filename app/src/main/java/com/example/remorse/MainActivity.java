@@ -7,8 +7,11 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Typeface;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -19,15 +22,13 @@ import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.media.MediaPlayer;
+import android.media.SoundPool;
 
 import com.example.remorse.Main2Activity;
 import com.example.remorse.Main3Activity;
 import com.example.remorse.R;
 
 public class MainActivity extends AppCompatActivity {
-
-
 
     private static final int CAMERA_REQUEST = 50;
     private boolean flashLightStatus = false;
@@ -42,15 +43,17 @@ public class MainActivity extends AppCompatActivity {
             "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.",
             "-----", "--..--", ".-.-.-", "..--.." };
 
+
+
     int flashMultiplier = 5;
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
 
         Button sendMorse = (Button) findViewById(R.id.changeScreens);
         Button sendSound = (Button) findViewById(R.id.button);
@@ -59,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
         final TextView morseText = (TextView) findViewById(R.id.textView2);
         final EditText textBox = (EditText) findViewById(R.id.editText);
         SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
+
+        Typeface atomic = Typeface.createFromAsset(getAssets(), "fonts/atomic.ttf");
+        textBox.setTypeface(atomic);
+
+
 
         switchToReceive.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -88,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
                     for(int j = 0; j < 39; j++){
                         if(letter == english[j]){
                             callSound(j);
+                            waitTimer(50 * flashMultiplier);
                             break;
                         }
                         else if(letter == ' '){
@@ -180,19 +189,49 @@ public class MainActivity extends AppCompatActivity {
             flashLightOn();
             Thread.sleep(time);
             flashLightOff();
-            Thread.sleep(75 * flashMultiplier);
+            Thread.sleep(25 * flashMultiplier);
         } catch (InterruptedException e) {}
     }
 
 
-    private void soundTimer(int time){
-        MediaPlayer beep = MediaPlayer.create(this, R.raw.shortbeep);
-        try {
-            beep.start();
-            Thread.sleep(time);
-            beep.pause();
-            Thread.sleep(75 * flashMultiplier);
-        }catch (InterruptedException e) {}
+
+    private void soundTimer(final int time){
+
+
+        //try {
+        //    //beep.start();
+        //    Thread.sleep(time);
+        //    //beep.pause();
+        //    Thread.sleep(75 * flashMultiplier);
+        //}catch (InterruptedException e) {}
+
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
+        SoundPool soundPool;
+
+        soundPool = new SoundPool.Builder()
+                .setMaxStreams(1)
+                .setAudioAttributes(audioAttributes)
+                .build();
+
+        final int sound1 = soundPool.load(this, R.raw.beep, 1);
+
+        soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+            @Override
+            public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                try{
+                    soundPool.play(sound1, 0.1f, 0.1f, 0, 0, 1);
+                    Thread.sleep(time);
+                    soundPool.stop(sound1);
+                    soundPool.release();
+                    Thread.sleep(25 * flashMultiplier);
+                }catch(InterruptedException e){}
+            }
+        });
+
     }
 
     private void waitTimer(int time){
