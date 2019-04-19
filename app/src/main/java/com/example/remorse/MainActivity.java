@@ -23,6 +23,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.SoundPool;
+//import android.widget.S
 
 import com.example.remorse.Main2Activity;
 import com.example.remorse.Main3Activity;
@@ -93,39 +94,46 @@ public class MainActivity extends AppCompatActivity {
                 for(int i = 0; i < content.length(); i++){
                     char letter = content.charAt(i);
                     //Travis right here
-                    for(int j = 0; j < 39; j++){
-                        if(letter == english[j]){
-                            callSound(j);
-                            waitTimer(50 * flashMultiplier);
-                            break;
-                        }
-                        else if(letter == ' '){
-                            waitTimer(175 * flashMultiplier);
-                            break;
+                    if(letter == ' '){
+                        waitTimer(1750 * flashMultiplier);
+                    }
+                    else {
+                        for (int j = 0; j < 39; j++) {
+                            if (letter == english[j]) {
+                                callSound(j);
+                                //waitTimer(50 * flashMultiplier);
+                                break;
+                            }
                         }
                     }
                 }
             }
         });
 
+        /****************************
+         * Iterates through the string
+         *
+         *
+         ****************************/
+
         sendMorse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 String content = textBox.getText().toString();
                 morseText.setText(content);
 
                 for(int i = 0; i < content.length(); i++){
                     char letter = content.charAt(i);
                     //Travis right here
-                    for(int j = 0; j < 39; j++){
-                        if(letter == english[j]){
-                            callFlashLight(j);
-                            break;
-                        }
-                        else if(letter == ' '){
-                            waitTimer(175 * flashMultiplier);
-                            break;
+                    if(letter == ' ') {
+                        waitTimer(1750 * flashMultiplier);
+                    }
+                    else {
+                        for (int j = 0; j < 39; j++) {
+                            if (letter == english[j]) {
+                                callFlashLight(j);
+                                break;
+                            }
                         }
                     }
                 }
@@ -185,57 +193,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void flashTimer(int time){
-        try {
             flashLightOn();
-            Thread.sleep(time);
+            waitTimer(time);
             flashLightOff();
-            Thread.sleep(25 * flashMultiplier);
-        } catch (InterruptedException e) {}
+            waitTimer(25 * flashMultiplier);
+    }
+
+    public SoundPool setupSoundPool(){
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        SoundPool soundPool;
+        soundPool = new SoundPool.Builder()
+                .setMaxStreams(1)
+                .setAudioAttributes(audioAttributes)
+                .build();
+        return soundPool;
     }
 
 
 
     private void soundTimer(final int time){
 
-
-        //try {
-        //    //beep.start();
-        //    Thread.sleep(time);
-        //    //beep.pause();
-        //    Thread.sleep(75 * flashMultiplier);
-        //}catch (InterruptedException e) {}
-
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_GAME)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build();
-
-        SoundPool soundPool;
-
-        soundPool = new SoundPool.Builder()
-                .setMaxStreams(1)
-                .setAudioAttributes(audioAttributes)
-                .build();
-
+        SoundPool soundPool = setupSoundPool();
         final int sound1 = soundPool.load(this, R.raw.beep, 1);
 
         soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
             @Override
             public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                try{
                     soundPool.play(sound1, 0.1f, 0.1f, 0, 0, 1);
-                    Thread.sleep(time);
+                    waitTimer(time);
                     soundPool.stop(sound1);
                     soundPool.release();
-                    Thread.sleep(25 * flashMultiplier);
-                }catch(InterruptedException e){}
+                    waitTimer(25 * flashMultiplier);
             }
         });
 
     }
 
     private void waitTimer(int time){
-        flashLightOff();
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {}
