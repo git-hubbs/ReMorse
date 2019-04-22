@@ -20,6 +20,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
 
 import com.example.remorse.Main2Activity;
 import com.example.remorse.Main3Activity;
@@ -30,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     private static final int CAMERA_REQUEST = 50;
-    private boolean flashLightStatus = false;
     final char[] english = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
             'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
             'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
@@ -41,7 +41,6 @@ public class MainActivity extends AppCompatActivity {
             "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", ".----",
             "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.",
             "-----", "--..--", ".-.-.-", "..--.." };
-
     int flashMultiplier = 5;
 
 
@@ -54,33 +53,14 @@ public class MainActivity extends AppCompatActivity {
 
         Button sendMorse = (Button) findViewById(R.id.changeScreens);
         Button sendSound = (Button) findViewById(R.id.button);
-        Button switchToReceive = (Button) findViewById(R.id.switchToReceive);
-        Button switchToLearner = (Button) findViewById(R.id.switchToLearner);
-        final TextView morseText = (TextView) findViewById(R.id.textView2);
         final EditText textBox = (EditText) findViewById(R.id.editText);
         SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
 
-        switchToReceive.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent myIntent = new Intent(MainActivity.this, Main2Activity.class);
-                MainActivity.this.startActivity(myIntent);
-            }
-        });
-
-        switchToLearner.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent myIntent = new Intent(MainActivity.this, Main3Activity.class);
-                MainActivity.this.startActivity(myIntent);
-            }
-        });
 
         sendSound.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 String content = textBox.getText().toString();
-                morseText.setText(content);
 
                 for(int i = 0; i < content.length(); i++){
                     char letter = content.charAt(i);
@@ -104,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
 
                 String content = textBox.getText().toString();
-                morseText.setText(content);
 
                 for(int i = 0; i < content.length(); i++){
                     char letter = content.charAt(i);
@@ -196,7 +175,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void waitTimer(int time){
-        flashLightOff();
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {}
@@ -207,7 +185,6 @@ public class MainActivity extends AppCompatActivity {
         try{
             String cameraId = cameraManager.getCameraIdList()[0];
             cameraManager.setTorchMode(cameraId, true);
-            flashLightStatus = true;
         } catch (CameraAccessException e){}
     }
 
@@ -216,12 +193,6 @@ public class MainActivity extends AppCompatActivity {
         try{
             String cameraId = cameraManager.getCameraIdList()[0];
             cameraManager.setTorchMode(cameraId, false);
-            flashLightStatus = false;
         } catch (CameraAccessException e){}
     }
 }
-
-            /* Code to switch to another activity
-                Intent myIntent = new Intent(MainActivity.this, Main2Activity.class);
-                MainActivity.this.startActivity(myIntent);
-             */
