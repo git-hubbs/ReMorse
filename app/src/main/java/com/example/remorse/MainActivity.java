@@ -65,9 +65,11 @@ public class MainActivity extends AppCompatActivity {
             "-----", "--..--", ".-.-.-", "..--.."};
 
 
-    int flashMultiplier = 5;
+    int flashMultiplier = 4;
     boolean flash = false;
     boolean sound = false;
+
+
 
     boolean stopFlashThread = false;
     boolean stopSoundThread = false;
@@ -75,18 +77,27 @@ public class MainActivity extends AppCompatActivity {
     String morseText = "";
     String text;
 
+    ImageButton powerButton;
+
+    public void changePowerButtonSetting(){
+        powerButton.setImageResource(R.drawable.power);
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final Button transmit = (Button) findViewById(R.id.button3);
         final EditText textBox = (EditText) findViewById(R.id.editText);
         final TextView morseView = (TextView) findViewById(R.id.textView3);
         final SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
         final ImageButton menu = (ImageButton) findViewById(R.id.imageButton3);
         final ImageButton lightButton = (ImageButton) findViewById(R.id.lightButton);
         final ImageButton soundButton = (ImageButton) findViewById(R.id.soundButton);
+        final TextView flashView = (TextView) findViewById(R.id.flashView);
+        final TextView soundView = (TextView) findViewById(R.id.soundView);
+        powerButton = (ImageButton) findViewById(R.id.powerButton);
 
 
         Typeface atomic = Typeface.createFromAsset(getAssets(), "fonts/andale-mono.ttf");
@@ -97,9 +108,24 @@ public class MainActivity extends AppCompatActivity {
         textBox.requestFocus();
 
 
+        powerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (sound) {
+                    text = textBox.getText().toString();
+                    SoundRunnable soundRunnable = new SoundRunnable(text);
+                    new Thread(soundRunnable).start();
+                    powerButton.setImageResource(R.drawable.poweron);
 
-        //morseView.setMovementMethod(new ScrollingMovementMethod());
-
+                }
+                if (flash) {
+                    text = textBox.getText().toString();
+                    FlashRunnable flashRunnable = new FlashRunnable(text);
+                    new Thread(flashRunnable).start();
+                    powerButton.setImageResource(R.drawable.poweron);
+                }
+            }
+        });
 
         soundButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -107,10 +133,12 @@ public class MainActivity extends AppCompatActivity {
                 if(sound){
                     sound = false;
                     soundButton.setImageResource(R.drawable.sound);
+                    soundView.setText("Sound: Off");
                 }
                 else{
                     sound = true;
                     soundButton.setImageResource(R.drawable.soundon);
+                    soundView.setText("Sound: On");
                 }
             }
         });
@@ -121,10 +149,12 @@ public class MainActivity extends AppCompatActivity {
                 if(flash) {
                     flash = false;
                     lightButton.setImageResource(R.drawable.flash);
+                    flashView.setText("Flash: Off");
                 }
                 else{
                     flash = true;
                     lightButton.setImageResource(R.drawable.flashon);
+                    flashView.setText("Flash: On");
                 }
             }
         });
@@ -170,21 +200,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        transmit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (sound) {
-                    text = textBox.getText().toString();
-                    SoundRunnable soundRunnable = new SoundRunnable(text);
-                    new Thread(soundRunnable).start();
-                }
-                if (flash) {
-                    text = textBox.getText().toString();
-                    FlashRunnable flashRunnable = new FlashRunnable(text);
-                    new Thread(flashRunnable).start();
-                }
-            }
-        });
+        //transmit.setOnClickListener(new View.OnClickListener() {
+        //    @Override
+        //    public void onClick(View v) {
+        //        if (sound) {
+        //            text = textBox.getText().toString();
+        //            SoundRunnable soundRunnable = new SoundRunnable(text);
+        //            new Thread(soundRunnable).start();
+        //        }
+        //        if (flash) {
+        //            text = textBox.getText().toString();
+        //            FlashRunnable flashRunnable = new FlashRunnable(text);
+        //            new Thread(flashRunnable).start();
+        //        }
+        //    }
+        //});
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -228,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+            changePowerButtonSetting();
         }
 
         private void waitTimer(int time) {
@@ -302,7 +333,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+            //changePowerButtonSetting();
         }
+
+
 
         private void soundTimer(final int time) {
             SoundPool soundPool = setupSoundPool();
