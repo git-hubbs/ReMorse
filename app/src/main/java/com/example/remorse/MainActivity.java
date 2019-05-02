@@ -3,27 +3,19 @@
 
 package com.example.remorse;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.media.AudioAttributes;
-import android.media.Image;
-import android.media.MediaPlayer;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -32,24 +24,10 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.SoundPool;
-import java.util.concurrent.Future;
-//import android.widget.S
-
-import com.example.remorse.Main2Activity;
-import com.example.remorse.Main3Activity;
-import com.example.remorse.R;
-
-import org.opencv.android.OpenCVLoader;
-
-import java.util.Vector;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
+import android.app.Dialog;
 
 
 public class MainActivity extends AppCompatActivity {
-
-
 
     private static final int CAMERA_REQUEST = 50;
     private boolean flashLightStatus = false;
@@ -68,16 +46,17 @@ public class MainActivity extends AppCompatActivity {
     int flashMultiplier = 4;
     boolean flash = false;
     boolean sound = false;
-
-
-
     boolean stopFlashThread = false;
     boolean stopSoundThread = false;
-
     String morseText = "";
     String text;
-
+    Dialog mainPopup;
+    public SeekBar miniSeekBar;
+    boolean stopThread = false;
     ImageButton powerButton;
+
+    TextView progressText;
+
 
     public void changePowerButtonSetting(){
         powerButton.setImageResource(R.drawable.power);
@@ -86,9 +65,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        mainPopup = new Dialog(this);
         final EditText textBox = (EditText) findViewById(R.id.editText);
         final TextView morseView = (TextView) findViewById(R.id.textView3);
         final SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
@@ -108,11 +88,14 @@ public class MainActivity extends AppCompatActivity {
         textBox.requestFocus();
 
 
+
+
         powerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (sound) {
                     text = textBox.getText().toString();
+                    ShowPopup();
                     SoundRunnable soundRunnable = new SoundRunnable(text);
                     new Thread(soundRunnable).start();
                     powerButton.setImageResource(R.drawable.poweron);
@@ -120,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (flash) {
                     text = textBox.getText().toString();
+                    ShowPopup();
                     FlashRunnable flashRunnable = new FlashRunnable(text);
                     new Thread(flashRunnable).start();
                     powerButton.setImageResource(R.drawable.poweron);
@@ -200,21 +184,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        //transmit.setOnClickListener(new View.OnClickListener() {
-        //    @Override
-        //    public void onClick(View v) {
-        //        if (sound) {
-        //            text = textBox.getText().toString();
-        //            SoundRunnable soundRunnable = new SoundRunnable(text);
-        //            new Thread(soundRunnable).start();
-        //        }
-        //        if (flash) {
-        //            text = textBox.getText().toString();
-        //            FlashRunnable flashRunnable = new FlashRunnable(text);
-        //            new Thread(flashRunnable).start();
-        //        }
-        //    }
-        //});
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -234,19 +203,79 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public void ShowPopup(){
+        Button cancel;
+        Button repeat;
+        mainPopup.setContentView(R.layout.mainpopup);
+        cancel = (Button) mainPopup.findViewById(R.id.cancel);
+        repeat = (Button) mainPopup.findViewById(R.id.repeat);
+        miniSeekBar = (SeekBar) mainPopup.findViewById(R.id.seekbar);
+        progressText = (TextView) mainPopup.findViewById(R.id.progressText);
+        cancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mainPopup.dismiss();
+                flashMultiplier = 5;
+                stopThread = true;
+            }
+        });
+        repeat.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sound) {
+                    //text = textBox.getText().toString();
+                    //ShowPopup();
+                    SoundRunnable soundRunnable = new SoundRunnable(text);
+                    new Thread(soundRunnable).start();
+                    powerButton.setImageResource(R.drawable.poweron);
+
+                }
+                if (flash) {
+                    //text = textBox.getText().toString();
+                    //ShowPopup();
+                    FlashRunnable flashRunnable = new FlashRunnable(text);
+                    new Thread(flashRunnable).start();
+                    powerButton.setImageResource(R.drawable.poweron);
+                }
+            }
+        });
+        miniSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
+                flashMultiplier = 9 - (seekbar.getProgress());
+
+            }
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        mainPopup.show();
+    }
+
 
     class FlashRunnable implements Runnable {
         String text;
+        String progressString;
 
         FlashRunnable(String text) {
             this.text = text.toLowerCase();
+            this.progressString = "";
         }
 
         @Override
         public void run() {
             for (int i = 0; i < text.length(); i++) {
-                char letter = text.charAt(i);
-
+                final char letter = text.charAt(i);
+                //String s = new StringBuilder(s1).append(s2).toString();
+                runOnUiThread(new Runnable()
+                {
+                    public void run()
+                    {
+                        progressString += letter;
+                        progressText.setText(progressString);
+                    }
+                });
                 if (letter == ' ') {
                     waitTimer(175 * flashMultiplier);
                 } else {
@@ -256,6 +285,10 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         }
                     }
+                }
+                if(stopThread){
+                    stopThread = false;
+                    break;
                 }
             }
             changePowerButtonSetting();
@@ -331,6 +364,10 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         }
                     }
+                }
+                if(stopThread){
+                    stopThread = false;
+                    break;
                 }
             }
             //changePowerButtonSetting();
