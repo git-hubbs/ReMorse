@@ -138,7 +138,13 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
 
             /* Now set camera parameters */
             try {
+
                 Camera.Parameters params = mCamera.getParameters();
+                params.setExposureCompensation(0);
+                params.setAutoExposureLock(true);
+
+
+                //Camera.Parameters params = mCamera.getParameters();
                 Log.d(TAG, "getSupportedPreviewSizes()");
                 List<android.hardware.Camera.Size> sizes = params.getSupportedPreviewSizes();
 
@@ -256,6 +262,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
          */
         /* First step - initialize camera connection */
         Log.d(TAG, "Connecting to camera");
+
         if (!initializeCamera(width, height))
             return false;
 

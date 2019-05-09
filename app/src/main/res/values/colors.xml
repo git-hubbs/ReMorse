@@ -4,4 +4,6 @@
     <color name="colorPrimaryDark">#02434C</color>
     <color name="colorAccent">#D81B60</color>
     <color name="white">#FFFFFF</color>
+    <color name="marker_color">#FFFFFF</color>
+    <color name="shadow_color">#FFFFFF</color>
 </resources>

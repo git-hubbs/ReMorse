@@ -9,6 +9,8 @@ import android.graphics.Typeface;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -25,6 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.media.SoundPool;
 import android.app.Dialog;
+
+import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -43,47 +47,52 @@ public class MainActivity extends AppCompatActivity {
             "-----", "--..--", ".-.-.-", "..--.."};
 
 
-    int flashMultiplier = 4;
+    int flashMultiplier = 5;
     boolean flash = false;
     boolean sound = false;
-    boolean stopFlashThread = false;
-    boolean stopSoundThread = false;
-    String morseText = "";
     String text;
-    Dialog mainPopup;
-    public SeekBar miniSeekBar;
     boolean stopThread = false;
     ImageButton powerButton;
+    boolean flashAndSound = false;
+    boolean powerIsOn = false;
 
     TextView progressText;
+    ImageButton cancel;
 
-
-    public void changePowerButtonSetting(){
+    public void changePowerButtonSetting() {
         powerButton.setImageResource(R.drawable.power);
+        powerIsOn = false;
     }
-
+    public void hideProgress() {
+        progressText.setVisibility(View.INVISIBLE);
+        cancel.setVisibility(View.INVISIBLE);
+        progressText.setText("");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mainPopup = new Dialog(this);
         final EditText textBox = (EditText) findViewById(R.id.editText);
         final TextView morseView = (TextView) findViewById(R.id.textView3);
+        progressText = (TextView) findViewById(R.id.progressText);
         final SeekBar seekBar = (SeekBar) findViewById(R.id.seekBar);
         final ImageButton menu = (ImageButton) findViewById(R.id.imageButton3);
         final ImageButton lightButton = (ImageButton) findViewById(R.id.lightButton);
         final ImageButton soundButton = (ImageButton) findViewById(R.id.soundButton);
         final TextView flashView = (TextView) findViewById(R.id.flashView);
         final TextView soundView = (TextView) findViewById(R.id.soundView);
+        final TextView speedView = (TextView) findViewById(R.id.speedView);
+        cancel = (ImageButton) findViewById(R.id.cancel);
         powerButton = (ImageButton) findViewById(R.id.powerButton);
 
 
+
         Typeface atomic = Typeface.createFromAsset(getAssets(), "fonts/andale-mono.ttf");
-        Typeface morse = Typeface.createFromAsset(getAssets(), "fonts/morse.ttf");
+        Typeface morseFont = Typeface.createFromAsset(getAssets(), "fonts/morse.ttf");
         textBox.setTypeface(atomic);
-        morseView.setTypeface(morse);
+        morseView.setTypeface(morseFont);
 
         textBox.requestFocus();
 
@@ -93,20 +102,52 @@ public class MainActivity extends AppCompatActivity {
         powerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (sound) {
-                    text = textBox.getText().toString();
-                    ShowPopup();
-                    SoundRunnable soundRunnable = new SoundRunnable(text);
-                    new Thread(soundRunnable).start();
-                    powerButton.setImageResource(R.drawable.poweron);
-
-                }
-                if (flash) {
-                    text = textBox.getText().toString();
-                    ShowPopup();
-                    FlashRunnable flashRunnable = new FlashRunnable(text);
-                    new Thread(flashRunnable).start();
-                    powerButton.setImageResource(R.drawable.poweron);
+                if (!powerIsOn) {
+                    stopThread = false;
+                    powerIsOn = true;
+                    text = textBox.getText().toString().toLowerCase();
+                    ArrayList<Integer> waitTimes = new ArrayList<>();
+                    for (int i = 0; i < text.length(); i++) {
+                        char letter = text.charAt(i);
+                        if (letter == ' ') {
+                            waitTimes.add(5); //175
+                        } else {
+                            for (int j = 0; j < 39; j++) {
+                                if (letter == english[j]) {
+                                    String morseType = morse[j];
+                                    for (int k = 0; k < morseType.length(); k++) {
+                                        if (morseType.charAt(k) == '.') {
+                                            waitTimes.add(1); //25 dot
+                                            if (k != morseType.length() - 1)
+                                                waitTimes.add(3); //25 wait
+                                        } else if (morseType.charAt(k) == '-') {
+                                            waitTimes.add(2); //75 dash
+                                            if (k != morseType.length() - 1)
+                                                waitTimes.add(3); //25 wait
+                                        }
+                                    }
+                                    waitTimes.add(4); //75 wait
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (sound && flash)
+                        flashAndSound = true;
+                    if (sound) {
+                        progressText.setVisibility(View.VISIBLE);
+                        cancel.setVisibility(View.VISIBLE);
+                        SoundRunnable soundRunnable = new SoundRunnable(waitTimes, text);
+                        new Thread(soundRunnable).start();
+                        powerButton.setImageResource(R.drawable.poweron);
+                    }
+                    if (flash) {
+                        progressText.setVisibility(View.VISIBLE);
+                        cancel.setVisibility(View.VISIBLE);
+                        FlashRunnable flashRunnable = new FlashRunnable(waitTimes, text);
+                        new Thread(flashRunnable).start();
+                        powerButton.setImageResource(R.drawable.poweron);
+                    }
                 }
             }
         });
@@ -143,6 +184,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        cancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!stopThread) stopThread = true;
+            }
+        });
+
         menu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -152,12 +200,15 @@ public class MainActivity extends AppCompatActivity {
                     public boolean onMenuItemClick(MenuItem item) {
                         switch (item.getItemId()){
                             case R.id.learnActivity:
+                                if (!stopThread) stopThread = true;
                                 Intent learnIntent = new Intent(MainActivity.this, Main2Activity.class);
                                 MainActivity.this.startActivity(learnIntent);
                                 return true;
                             case R.id.ReceiveActivity:
+                                if (!stopThread) stopThread = true;
                                 Intent receiveIntent = new Intent(MainActivity.this, Main3Activity.class);
                                 MainActivity.this.startActivity(receiveIntent);
+
                                 return true;
                         }
                         return true;
@@ -187,8 +238,8 @@ public class MainActivity extends AppCompatActivity {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                flashMultiplier = 10 - (seekBar.getProgress());
-
+                flashMultiplier = 11 - (seekBar.getProgress());
+                speedView.setText("Speed: " + flashMultiplier * 25 + "ms");
             }
 
             @Override
@@ -201,223 +252,152 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+
     }
-
-    public void ShowPopup(){
-        Button cancel;
-        Button repeat;
-        mainPopup.setContentView(R.layout.mainpopup);
-        cancel = (Button) mainPopup.findViewById(R.id.cancel);
-        repeat = (Button) mainPopup.findViewById(R.id.repeat);
-        miniSeekBar = (SeekBar) mainPopup.findViewById(R.id.seekbar);
-        progressText = (TextView) mainPopup.findViewById(R.id.progressText);
-        cancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mainPopup.dismiss();
-                flashMultiplier = 5;
-                stopThread = true;
-            }
-        });
-        repeat.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (sound) {
-                    //text = textBox.getText().toString();
-                    //ShowPopup();
-                    SoundRunnable soundRunnable = new SoundRunnable(text);
-                    new Thread(soundRunnable).start();
-                    powerButton.setImageResource(R.drawable.poweron);
-
-                }
-                if (flash) {
-                    //text = textBox.getText().toString();
-                    //ShowPopup();
-                    FlashRunnable flashRunnable = new FlashRunnable(text);
-                    new Thread(flashRunnable).start();
-                    powerButton.setImageResource(R.drawable.poweron);
-                }
-            }
-        });
-        miniSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
-                flashMultiplier = 9 - (seekbar.getProgress());
-
-            }
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
-        });
-        mainPopup.show();
-    }
-
 
     class FlashRunnable implements Runnable {
         String text;
         String progressString;
+        ArrayList<Integer> waitTimes;
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
 
-        FlashRunnable(String text) {
-            this.text = text.toLowerCase();
+        FlashRunnable(ArrayList<Integer> waitTimes, String text) {
+            this.waitTimes = waitTimes;
+            this.text = text;
             this.progressString = "";
         }
 
         @Override
         public void run() {
-            for (int i = 0; i < text.length(); i++) {
-                final char letter = text.charAt(i);
-                //String s = new StringBuilder(s1).append(s2).toString();
-                runOnUiThread(new Runnable()
-                {
-                    public void run()
-                    {
-                        progressString += letter;
-                        progressText.setText(progressString);
-                    }
-                });
-                if (letter == ' ') {
-                    waitTimer(175 * flashMultiplier);
-                } else {
-                    for (int j = 0; j < 39; j++) {
-                        if (letter == english[j]) {
-                            callFlashLight(j);
-                            break;
-                        }
-                    }
-                }
-                if(stopThread){
-                    stopThread = false;
+            int textItr = 0;
+            progressString += text.charAt(textItr);
+            progressText.setText(progressString);
+            textItr += 1;
+            for (int i = 0; i < waitTimes.size(); i++) {
+                int action = waitTimes.get(i);
+                if(stopThread)
                     break;
+                if (action == 1) {
+                    flashFor(25);
+                } else if (action == 2) {
+                    flashFor(75);
+                } else if (action == 3) {
+                    waitTimer(25);
+                } else if (action == 4) {
+                    waitTimer(75);
+                    if (textItr < text.length()) {
+                        progressString += text.charAt(textItr);
+                        progressText.setText(progressString);
+                        textItr += 1;
+                    }
+                } else { //action == 5
+                    waitTimer(100);
+                    if (textItr < text.length()) {
+                        progressString += text.charAt(textItr);
+                        progressText.setText(progressString);
+                        textItr += 1;
+                    }
                 }
             }
             changePowerButtonSetting();
+            hideProgress();
         }
 
-        private void waitTimer(int time) {
-            try {
-                Thread.sleep(time);
-            } catch (InterruptedException e) {
-            }
-        }
-
-        private void flashLightOn() {
-            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        private void flashFor(int time) {
             try {
                 String cameraId = cameraManager.getCameraIdList()[0];
                 cameraManager.setTorchMode(cameraId, true);
                 flashLightStatus = true;
-            } catch (CameraAccessException e) {
-            }
-        }
-
-        private void flashLightOff() {
-            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+            } catch (CameraAccessException e) { e.printStackTrace(); }
+            try {
+                Thread.sleep(time * flashMultiplier);
+            } catch (InterruptedException e) { e.printStackTrace(); }
             try {
                 String cameraId = cameraManager.getCameraIdList()[0];
                 cameraManager.setTorchMode(cameraId, false);
                 flashLightStatus = false;
-            } catch (CameraAccessException e) {
-            }
+            } catch (CameraAccessException e) { e.printStackTrace(); }
         }
 
-        private void flashTimer(int time) {
-            flashLightOn();
-            waitTimer(time);
-            flashLightOff();
-            waitTimer(25 * flashMultiplier);
-        }
-
-        private void callFlashLight(int n) {
-            String code = morse[n];
-            for (int i = 0; i < code.length(); i++) {
-                if (code.charAt(i) == '.') {
-                    flashTimer(25 * flashMultiplier);
-                } else if (code.charAt(i) == '-') {
-                    flashTimer(75 * flashMultiplier);
-                } else {
-                    Toast.makeText(MainActivity.this, "Error in the code array..",
-                            Toast.LENGTH_SHORT).show();
-                }
-            }
+        private void waitTimer(int time) {
+            try {
+                Thread.sleep(time * flashMultiplier);
+            } catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
 
     class SoundRunnable implements Runnable {
         String text;
+        String progressString;
+        ArrayList<Integer> waitTimes;
+        ToneGenerator beep = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
 
-        SoundRunnable(String text) {
-            this.text = text.toLowerCase();
+        SoundRunnable(ArrayList<Integer> waitTimes, String text) {
+            this.waitTimes = waitTimes;
+            this.text = text;
+            this.progressString = "";
         }
 
         @Override
         public void run() {
-
-            for (int i = 0; i < text.length(); i++) {
-                char letter = text.charAt(i);
-                if (letter == ' ') {
-                    waitTimer(175 * flashMultiplier);
-                } else {
-                    for (int j = 0; j < 39; j++) {
-                        if (letter == english[j]) {
-                            callSound(j);
-                            break;
+            int textItr = 0;
+            if (!flashAndSound) {
+                progressString += text.charAt(textItr);
+                progressText.setText(progressString);
+                textItr += 1;
+            }
+            for (int i = 0; i < waitTimes.size(); i++) {
+                int action = waitTimes.get(i);
+                if(stopThread)
+                    break;
+                if (action == 1) {
+                    playBeep(25);
+                } else if (action == 2) {
+                    playBeep(75);
+                } else if (action == 3) {
+                    waitTimer(25);
+                } else if (action == 4) {
+                    waitTimer(75);
+                    if (!flashAndSound) {
+                        if (textItr < text.length()) {
+                            progressString += text.charAt(textItr);
+                            progressText.setText(progressString);
+                            textItr += 1;
+                        }
+                    }
+                } else { //action == 5
+                    waitTimer(100);
+                    if (!flashAndSound) {
+                        if (textItr < text.length()) {
+                            progressString += text.charAt(textItr);
+                            progressText.setText(progressString);
+                            textItr += 1;
                         }
                     }
                 }
-                if(stopThread){
-                    stopThread = false;
-                    break;
-                }
             }
-            //changePowerButtonSetting();
+            if (!flashAndSound) {
+                changePowerButtonSetting();
+                hideProgress();
+            } else
+                flashAndSound = false;
+
+
         }
 
-
-
-        private void soundTimer(final int time) {
-            SoundPool soundPool = setupSoundPool();
-            final int sound1 = soundPool.load(MainActivity.this, R.raw.beep, 1);
-
-            soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
-                public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
-                    soundPool.play(sound1, 0.1f, 0.1f, 0, 0, 1);
-                    waitTimer(time);
-                    soundPool.stop(sound1);
-                    //soundPool.release();
-                    waitTimer(25 * flashMultiplier);
-                }
-            });
+        private void playBeep(int time) {
+            beep.startTone(ToneGenerator.TONE_DTMF_7);
+            try {
+                Thread.sleep(time * flashMultiplier);
+            } catch (InterruptedException e) { e.printStackTrace(); }
+            beep.stopTone();
         }
 
         private void waitTimer(int time) {
             try {
-                Thread.sleep(time);
-            } catch (InterruptedException e) {}
-        }
-
-        private void callSound(int n) {
-            String code = morse[n];
-            for (int i = 0; i < code.length(); i++) {
-                if (code.charAt(i) == '.') {
-                    soundTimer(25 * flashMultiplier);
-                } else
-                    soundTimer(75 * flashMultiplier);
-            }
-        }
-        private SoundPool setupSoundPool() {
-            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build();
-            SoundPool soundPool;
-            soundPool = new SoundPool.Builder()
-                    .setMaxStreams(1)
-                    .setAudioAttributes(audioAttributes)
-                    .build();
-            return soundPool;
+                Thread.sleep(time * flashMultiplier);
+            } catch (InterruptedException e) { e.printStackTrace(); }
         }
     }
 }
-
-

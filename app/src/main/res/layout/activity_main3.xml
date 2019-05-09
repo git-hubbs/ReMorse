@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:opencv="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@color/colorPrimary"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,6 +11,82 @@
     <org.opencv.android.JavaCameraView
         android:id="@+id/cameraView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toTopOf="@+id/valueView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        opencv:layout_constraintVertical_bias="0.61"
+        opencv:show_fps="true" />
+
+    <TextView
+        android:id="@+id/valueView"
+        android:layout_width="171dp"
+        android:layout_height="22dp"
+        android:layout_marginStart="300dp"
+        android:layout_marginTop="127dp"
+        android:layout_marginEnd="176dp"
+        android:layout_marginBottom="150dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cameraView"
+        opencv:layout_constraintHorizontal_bias="0.762" />
+
+    <TextView
+        android:id="@+id/fpsView"
+        android:layout_width="303dp"
+        android:layout_height="27dp"
+        android:layout_marginStart="176dp"
+        android:layout_marginEnd="176dp"
+        android:layout_marginBottom="10dp"
+        android:text="TextView"
+        opencv:layout_constraintBottom_toTopOf="@+id/valueView"
+        opencv:layout_constraintEnd_toEndOf="parent"
+        opencv:layout_constraintHorizontal_bias="0.51"
+        opencv:layout_constraintStart_toStartOf="parent" />
+
+    <SeekBar
+        android:id="@+id/dashSpeedBar"
+        android:layout_width="193dp"
+        android:layout_height="35dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginBottom="10dp"
+        android:max="10"
+        android:progress="7"
+        opencv:layout_constraintBottom_toTopOf="@+id/fpsView"
+        opencv:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/speedView"
+        android:layout_width="125dp"
+        android:layout_height="35dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="10dp"
+        android:text="Speed: 700ms"
+        opencv:layout_constraintBottom_toTopOf="@+id/fpsView"
+        opencv:layout_constraintStart_toEndOf="@+id/dashSpeedBar" />
+
+    <SeekBar
+        android:id="@+id/lightConstraintBar"
+        android:layout_width="192dp"
+        android:layout_height="35dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginBottom="5dp"
+        android:max="255"
+        android:progress="235"
+        opencv:layout_constraintBottom_toTopOf="@+id/dashSpeedBar"
+        opencv:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/lightConstraintView"
+        android:layout_width="119dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="11dp"
+        android:layout_marginBottom="10dp"
+        android:text="Brightness Filter: 235/255"
+        opencv:layout_constraintBottom_toTopOf="@+id/speedView"
+        opencv:layout_constraintStart_toEndOf="@+id/lightConstraintBar" />
 
 </android.support.constraint.ConstraintLayout>
